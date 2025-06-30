@@ -90,11 +90,29 @@ func NewAuthentikProvider(ext conf.OAuthProviderConfiguration, scopes string) (O
 		return nil, err
 	}
 
-	host := chooseHost(ext.URL, defaultAuthentikAuthBase)
+	// For Authentik, we need to extract the base OAuth path
+	// The URL format is: https://auth.example.com/application/o/app-slug
+	// But the endpoints are at: https://auth.example.com/application/o/
+	baseURL := ext.URL
 	
-	// Ensure the host ends with a trailing slash for proper URL construction
-	if !strings.HasSuffix(host, "/") {
-		host += "/"
+	// Extract the base URL (remove app slug from the end)
+	if idx := strings.LastIndex(ext.URL, "/o/"); idx != -1 {
+		// Find everything after /o/
+		afterO := ext.URL[idx+3:]
+		// If there's a slash after /o/, keep everything including the slash
+		// Otherwise, we need to add /o/ back
+		if strings.Contains(afterO, "/") {
+			// URL already has proper format
+			baseURL = ext.URL
+		} else {
+			// URL ends with app slug, remove it
+			baseURL = ext.URL[:idx+3]
+		}
+	}
+	
+	// Ensure the base URL ends with a trailing slash
+	if !strings.HasSuffix(baseURL, "/") {
+		baseURL += "/"
 	}
 
 	oauthScopes := []string{"openid", "profile", "email"}
@@ -107,13 +125,13 @@ func NewAuthentikProvider(ext conf.OAuthProviderConfiguration, scopes string) (O
 			ClientID:     ext.ClientID[0],
 			ClientSecret: ext.Secret,
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  host + "authorize/",
-				TokenURL: host + "token/",
+				AuthURL:  baseURL + "authorize/",
+				TokenURL: baseURL + "token/",
 			},
 			Scopes:      oauthScopes,
 			RedirectURL: ext.RedirectURI,
 		},
-		Host: host,
+		Host: baseURL,
 	}, nil
 }
 
