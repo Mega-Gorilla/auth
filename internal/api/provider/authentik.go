@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/supabase/auth/internal/conf"
@@ -96,12 +95,6 @@ func NewAuthentikProvider(ext conf.OAuthProviderConfiguration, scopes string) (O
 	// Ensure the host ends with a trailing slash for proper URL construction
 	if !strings.HasSuffix(host, "/") {
 		host += "/"
-	}
-
-	// Extract the base URL (without the application path) for the issuer URL
-	baseURL := ext.URL
-	if idx := strings.Index(ext.URL, "/application/o/"); idx != -1 {
-		baseURL = ext.URL[:idx]
 	}
 
 	oauthScopes := []string{"openid", "profile", "email"}
