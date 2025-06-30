@@ -1,6 +1,10 @@
-# Auth - Authentication and User Management by Supabase
+# Auth - Authentication and User Management by Supabase (Fork with Authentik OIDC Support)
 
 [![Coverage Status](https://coveralls.io/repos/github/supabase/auth/badge.svg?branch=master)](https://coveralls.io/github/supabase/auth?branch=master)
+
+> **Note**: This is a fork of [supabase/auth](https://github.com/supabase/auth) v2.149.0 that adds support for [Authentik](https://goauthentik.io/) OIDC provider, which is not yet available in the official repository.
+>
+> Official support for Authentik is being discussed in [issue #451](https://github.com/supabase/auth/issues/451). If you would like to see Authentik support in the official repository, please give a thumbs up 👍 to the Authentik-related comments in that issue.
 
 Auth is a user management and authentication server written in Go that powers
 [Supabase](https://supabase.com)'s features such as:
@@ -430,7 +434,7 @@ The default group to assign all new users to.
 
 ### External Authentication Providers
 
-We support `apple`, `azure`, `bitbucket`, `discord`, `facebook`, `figma`, `github`, `gitlab`, `google`, `keycloak`, `linkedin`, `notion`, `spotify`, `slack`, `twitch`, `twitter` and `workos` for external authentication.
+We support `apple`, `authentik`, `azure`, `bitbucket`, `discord`, `facebook`, `figma`, `github`, `gitlab`, `google`, `keycloak`, `linkedin`, `notion`, `spotify`, `slack`, `twitch`, `twitter` and `workos` for external authentication.
 
 Use the names as the keys underneath `external` to configure each separately.
 
@@ -461,7 +465,26 @@ The URI a OAuth2 provider will redirect to with the `code` and `state` values.
 
 `EXTERNAL_X_URL` - `string`
 
-The base URL used for constructing the URLs to request authorization and access tokens. Used by `gitlab` and `keycloak`. For `gitlab` it defaults to `https://gitlab.com`. For `keycloak` you need to set this to your instance, for example: `https://keycloak.example.com/realms/myrealm`
+The base URL used for constructing the URLs to request authorization and access tokens. Used by `gitlab`, `keycloak`, and `authentik`. For `gitlab` it defaults to `https://gitlab.com`. For `keycloak` you need to set this to your instance, for example: `https://keycloak.example.com/realms/myrealm`. For `authentik`, set this to your application's OAuth endpoint, for example: `https://authentik.example.com/application/o/my-application`
+
+#### Authentik OAuth
+
+Authentik is a flexible open-source Identity Provider that supports OAuth2/OIDC. To configure Authentik:
+
+1. Create an OAuth2/OpenID Provider in Authentik
+2. Create an Application and link it to the provider
+3. Configure the redirect URI to match your `GOTRUE_EXTERNAL_AUTHENTIK_REDIRECT_URI`
+4. Set the following environment variables:
+
+```properties
+GOTRUE_EXTERNAL_AUTHENTIK_ENABLED=true
+GOTRUE_EXTERNAL_AUTHENTIK_CLIENT_ID=your-client-id
+GOTRUE_EXTERNAL_AUTHENTIK_SECRET=your-client-secret
+GOTRUE_EXTERNAL_AUTHENTIK_REDIRECT_URI=http://localhost:9999/callback
+GOTRUE_EXTERNAL_AUTHENTIK_URL=https://authentik.example.com/application/o/your-app-slug
+```
+
+Note: The URL should point to your Authentik application's OAuth endpoint, which typically follows the pattern `/application/o/{app-slug}`.
 
 #### Apple OAuth
 

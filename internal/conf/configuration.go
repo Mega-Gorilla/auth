@@ -329,6 +329,7 @@ type ProviderConfiguration struct {
 	Kakao                   OAuthProviderConfiguration     `json:"kakao"`
 	Notion                  OAuthProviderConfiguration     `json:"notion"`
 	Keycloak                OAuthProviderConfiguration     `json:"keycloak"`
+	Authentik               OAuthProviderConfiguration     `json:"authentik"`
 	Linkedin                OAuthProviderConfiguration     `json:"linkedin"`
 	LinkedinOIDC            OAuthProviderConfiguration     `json:"linkedin_oidc" envconfig:"LINKEDIN_OIDC"`
 	Spotify                 OAuthProviderConfiguration     `json:"spotify"`
