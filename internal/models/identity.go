@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 
@@ -39,6 +40,9 @@ func (i *Identity) GetEmail() string {
 
 // NewIdentity returns an identity associated to the user's id.
 func NewIdentity(user *User, provider string, identityData map[string]interface{}) (*Identity, error) {
+	// Debug: Log the identityData being processed
+	fmt.Printf("[DEBUG] NewIdentity called with provider=%s, identityData=%+v\n", provider, identityData)
+	
 	providerId, ok := identityData["sub"]
 	if !ok {
 		return nil, errors.New("error missing provider id")
