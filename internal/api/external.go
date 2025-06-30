@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -287,19 +286,6 @@ func (a *API) createAccountFromExternalIdentity(tx *storage.Connection, r *http.
 	var identityData map[string]interface{}
 	if userData.Metadata != nil {
 		identityData = structs.Map(userData.Metadata)
-		// Debug: Log identity data after conversion
-		fmt.Printf("[DEBUG] Identity data after structs.Map conversion: %+v\n", identityData)
-		// Check specific fields
-		if sub, ok := identityData["sub"]; ok {
-			fmt.Printf("[DEBUG] Found 'sub' field in identityData: %v\n", sub)
-		} else {
-			fmt.Printf("[DEBUG] WARNING: 'sub' field NOT found in identityData!\n")
-			fmt.Printf("[DEBUG] Available fields in identityData: ")
-			for k := range identityData {
-				fmt.Printf("%s, ", k)
-			}
-			fmt.Printf("\n")
-		}
 	}
 
 	decision, terr := models.DetermineAccountLinking(tx, config, userData.Emails, aud, providerType, userData.Metadata.Subject)
@@ -704,17 +690,10 @@ func (a *API) getExternalRedirectURL(r *http.Request) string {
 }
 
 func (a *API) createNewIdentity(tx *storage.Connection, user *models.User, providerType string, identityData map[string]interface{}) (*models.Identity, error) {
-	// Debug: Log what's being passed to create identity
-	fmt.Printf("[DEBUG] Creating identity for provider=%s user=%s with data: %+v\n", providerType, user.ID, identityData)
-	
 	identity, err := models.NewIdentity(user, providerType, identityData)
 	if err != nil {
 		return nil, err
 	}
-
-	// Debug: Log the identity before saving
-	fmt.Printf("[DEBUG] Identity before saving: Provider=%s, ProviderID=%s, IdentityData=%+v\n", 
-		identity.Provider, identity.ProviderID, identity.IdentityData)
 
 	if terr := tx.Create(identity); terr != nil {
 		return nil, apierrors.NewInternalServerError("Error creating identity").WithInternalError(terr)

@@ -117,11 +117,6 @@ func makeRequest(ctx context.Context, tok *oauth2.Token, g *oauth2.Config, url s
 	bodyBytes, _ := io.ReadAll(res.Body)
 	res.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
-	// Debug: Log raw response for authentik requests
-	if strings.Contains(url, "authentik") || strings.Contains(url, "userinfo") {
-		log.Printf("[DEBUG] Raw response from %s: %s", url, string(bodyBytes))
-	}
-
 	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusMultipleChoices {
 		return httpError(res.StatusCode, string(bodyBytes))
 	}

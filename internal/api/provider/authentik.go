@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/supabase/auth/internal/conf"
@@ -148,23 +147,10 @@ func (g AuthentikProvider) GetUserData(ctx context.Context, tok *oauth2.Token) (
 	// Authentik userinfo endpoint
 	userInfoURL := g.Host + "userinfo/"
 	
-	// Debug: Log the userinfo URL being called
-	fmt.Printf("[DEBUG] Authentik userinfo URL: %s\n", userInfoURL)
-	
 	if err := makeRequest(ctx, tok, g.Config, userInfoURL, &u); err != nil {
 		return nil, err
 	}
 	
-	// Debug: Log raw user data received from Authentik
-	fmt.Printf("[DEBUG] Raw Authentik user data: %+v\n", u)
-	if u.CustomClaims != nil {
-		fmt.Printf("[DEBUG] Custom claims: %+v\n", u.CustomClaims)
-	}
-	
-	// Check if critical fields are present
-	if u.Sub == "" {
-		return nil, fmt.Errorf("authentik user data missing required 'sub' field")
-	}
 
 	data := &UserProvidedData{}
 	
@@ -225,11 +211,6 @@ func (g AuthentikProvider) GetUserData(ctx context.Context, tok *oauth2.Token) (
 		// Store all claims for flexibility
 		CustomClaims: claims,
 	}
-	
-	// Debug: Log the final metadata being returned
-	fmt.Printf("[DEBUG] Final UserProvidedData.Metadata: %+v\n", data.Metadata)
-	fmt.Printf("[DEBUG] Final claims map: %+v\n", claims)
-	fmt.Printf("[DEBUG] Specifically checking Subject field: %s\n", data.Metadata.Subject)
 
 	// Set emails
 	if u.Email != "" {
