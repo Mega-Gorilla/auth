@@ -286,6 +286,11 @@ func (a *API) internalExternalProviderCallback(w http.ResponseWriter, r *http.Re
 	if flowState != nil {
 		// This means that the callback is using PKCE
 		// Set the flowState.AuthCode to the query param here
+		debugPKCEFlow(r, "callback_redirect_with_code", map[string]interface{}{
+			"redirect_url": rurl,
+			"auth_code": flowState.AuthCode,
+			"flow_state_id": flowState.ID.String(),
+		})
 		rurl, err = a.prepPKCERedirectURL(rurl, flowState.AuthCode)
 		if err != nil {
 			return err
