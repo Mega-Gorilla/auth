@@ -141,6 +141,14 @@ func (a *API) GetExternalProviderRedirectURL(w http.ResponseWriter, r *http.Requ
 
 	authURL := p.AuthCodeURL(tokenString, authUrlParams...)
 
+	// Debug the authorization URL
+	debugPKCEFlow(r, "authorize_redirect", map[string]interface{}{
+		"auth_url": authURL,
+		"flow_state_id": flowStateID,
+		"has_pkce": flowStateID != "",
+		"state": tokenString,
+	})
+
 	return authURL, nil
 }
 
@@ -149,6 +157,10 @@ func (a *API) ExternalProviderCallback(w http.ResponseWriter, r *http.Request) e
 	// Debug callback entry
 	debugPKCEFlow(r, "callback_start", map[string]interface{}{
 		"query_params": r.URL.Query(),
+		"state": r.URL.Query().Get("state"),
+		"code": r.URL.Query().Get("code"),
+		"error": r.URL.Query().Get("error"),
+		"error_description": r.URL.Query().Get("error_description"),
 	})
 	rurl := a.getExternalRedirectURL(r)
 	u, err := url.Parse(rurl)
