@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -59,6 +61,14 @@ func debugPKCEFlow(r *http.Request, stage string, data map[string]interface{}) {
 
 // getCookieDomain determines the appropriate cookie domain
 func getCookieDomain(r *http.Request, config *conf.GlobalConfiguration) string {
+	// Check environment variable first (GOTRUE_COOKIE_DOMAIN)
+	if domain := os.Getenv("GOTRUE_COOKIE_DOMAIN"); domain != "" {
+		debugPKCEFlow(r, "cookie_domain_from_env", map[string]interface{}{
+			"domain": domain,
+		})
+		return domain
+	}
+	
 	// Parse the site URL to get the domain
 	if config.SiteURL != "" {
 		if u, err := url.Parse(config.SiteURL); err == nil {
@@ -98,28 +108,58 @@ func getCookieDomain(r *http.Request, config *conf.GlobalConfiguration) string {
 func setPKCECookie(w http.ResponseWriter, r *http.Request, config *conf.GlobalConfiguration, name, value string) {
 	domain := getCookieDomain(r, config)
 	
-	// Determine if we should use secure cookies based on the site URL
+	// Get cookie name from env or use default
+	cookieName := os.Getenv("GOTRUE_COOKIE_NAME")
+	if cookieName == "" {
+		cookieName = name
+	} else {
+		cookieName = cookieName + "-" + name
+	}
+	
+	// Determine if we should use secure cookies
 	secure := false
-	if u, err := url.Parse(config.SiteURL); err == nil {
+	if secureStr := os.Getenv("GOTRUE_COOKIE_SECURE"); secureStr != "" {
+		secure, _ = strconv.ParseBool(secureStr)
+	} else if u, err := url.Parse(config.SiteURL); err == nil {
 		secure = u.Scheme == "https"
 	}
 	
+	// Get SameSite setting
+	sameSite := http.SameSiteLaxMode
+	if sameSiteStr := os.Getenv("GOTRUE_COOKIE_SAMESITE"); sameSiteStr != "" {
+		switch strings.ToLower(sameSiteStr) {
+		case "strict":
+			sameSite = http.SameSiteStrictMode
+		case "none":
+			sameSite = http.SameSiteNoneMode
+		}
+	}
+	
+	// Get cookie duration or use default
+	maxAge := 300 // 5 minutes default for PKCE flow
+	if durationStr := os.Getenv("GOTRUE_COOKIE_DURATION"); durationStr != "" {
+		if duration, err := strconv.Atoi(durationStr); err == nil {
+			maxAge = duration
+		}
+	}
+	
 	cookie := &http.Cookie{
-		Name:     name,
+		Name:     cookieName,
 		Value:    value,
 		Path:     "/",
 		Domain:   domain,
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: http.SameSiteLaxMode, // Use Lax for OAuth flow
-		MaxAge:   300, // 5 minutes for PKCE flow
+		SameSite: sameSite,
+		MaxAge:   maxAge,
 	}
 
 	debugPKCEFlow(r, "set_cookie", map[string]interface{}{
-		"cookie_name":   name,
+		"cookie_name":   cookieName,
 		"cookie_domain": domain,
 		"cookie_secure": cookie.Secure,
 		"cookie_samesite": cookie.SameSite,
+		"cookie_maxage": cookie.MaxAge,
 	})
 
 	http.SetCookie(w, cookie)
@@ -127,12 +167,20 @@ func setPKCECookie(w http.ResponseWriter, r *http.Request, config *conf.GlobalCo
 
 // findPKCECookie attempts to find a PKCE-related cookie with various name patterns
 func findPKCECookie(r *http.Request, baseName string) *http.Cookie {
+	// Get cookie name prefix from env
+	cookiePrefix := os.Getenv("GOTRUE_COOKIE_NAME")
+	
 	// Try different cookie name patterns
 	patterns := []string{
 		baseName,
 		"sb-" + baseName,
 		"sb-db-auth-token-" + baseName,
 		"sb-auth-token-" + baseName,
+	}
+	
+	// Add env-based pattern if available
+	if cookiePrefix != "" {
+		patterns = append([]string{cookiePrefix + "-" + baseName}, patterns...)
 	}
 
 	cookies := r.Cookies()
