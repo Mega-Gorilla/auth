@@ -262,6 +262,13 @@ func (a *API) PKCE(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
+	// Debug PKCE token exchange
+	debugPKCEFlow(r, "pkce_token_exchange", map[string]interface{}{
+		"has_auth_code": params.AuthCode != "",
+		"has_code_verifier": params.CodeVerifier != "",
+		"auth_code_length": len(params.AuthCode),
+	})
+
 	if params.AuthCode == "" || params.CodeVerifier == "" {
 		return apierrors.NewBadRequestError(apierrors.ErrorCodeValidationFailed, "invalid request: both auth code and code verifier should be non-empty")
 	}
@@ -269,6 +276,10 @@ func (a *API) PKCE(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 	flowState, err := models.FindFlowStateByAuthCode(db, params.AuthCode)
 	// Sanity check in case user ID was not set properly
 	if models.IsNotFoundError(err) || flowState.UserID == nil {
+		debugPKCEFlow(r, "pkce_flow_state_not_found", map[string]interface{}{
+			"auth_code": params.AuthCode,
+			"error": err,
+		})
 		return apierrors.NewNotFoundError(apierrors.ErrorCodeFlowStateNotFound, "invalid flow state, no valid flow state found")
 	} else if err != nil {
 		return err

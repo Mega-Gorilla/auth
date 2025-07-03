@@ -77,6 +77,14 @@ func (a *API) GetExternalProviderRedirectURL(w http.ResponseWriter, r *http.Requ
 	}
 	flowType := getFlowFromChallenge(codeChallenge)
 
+	// Debug PKCE flow initiation
+	debugPKCEFlow(r, "authorize_start", map[string]interface{}{
+		"provider": providerType,
+		"flow_type": flowType,
+		"has_code_challenge": codeChallenge != "",
+		"code_challenge_method": codeChallengeMethod,
+	})
+
 	flowStateID := ""
 	if isPKCEFlow(flowType) {
 		flowState, err := generateFlowState(a.db, providerType, models.OAuth, codeChallengeMethod, codeChallenge, nil)
@@ -84,6 +92,12 @@ func (a *API) GetExternalProviderRedirectURL(w http.ResponseWriter, r *http.Requ
 			return "", err
 		}
 		flowStateID = flowState.ID.String()
+		
+		// Debug flow state creation
+		debugPKCEFlow(r, "flow_state_created", map[string]interface{}{
+			"flow_state_id": flowStateID,
+			"auth_code": flowState.AuthCode,
+		})
 	}
 
 	claims := ExternalProviderClaims{
@@ -131,6 +145,10 @@ func (a *API) GetExternalProviderRedirectURL(w http.ResponseWriter, r *http.Requ
 
 // ExternalProviderCallback handles the callback endpoint in the external oauth provider flow
 func (a *API) ExternalProviderCallback(w http.ResponseWriter, r *http.Request) error {
+	// Debug callback entry
+	debugPKCEFlow(r, "callback_start", map[string]interface{}{
+		"query_params": r.URL.Query(),
+	})
 	rurl := a.getExternalRedirectURL(r)
 	u, err := url.Parse(rurl)
 	if err != nil {
@@ -162,6 +180,11 @@ func (a *API) handleOAuthCallback(r *http.Request) (*OAuthProviderData, error) {
 func (a *API) internalExternalProviderCallback(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	db := a.db.WithContext(ctx)
+	
+	// Debug internal callback
+	debugPKCEFlow(r, "internal_callback_start", map[string]interface{}{
+		"method": r.Method,
+	})
 
 	var grantParams models.GrantParams
 	grantParams.FillGrantParams(r)
@@ -193,8 +216,15 @@ func (a *API) internalExternalProviderCallback(w http.ResponseWriter, r *http.Re
 	var flowState *models.FlowState
 	// if there's a non-empty FlowStateID we perform PKCE Flow
 	if flowStateID := getFlowStateID(ctx); flowStateID != "" {
+		debugPKCEFlow(r, "searching_flow_state", map[string]interface{}{
+			"flow_state_id": flowStateID,
+		})
 		flowState, err = models.FindFlowStateByID(a.db, flowStateID)
 		if models.IsNotFoundError(err) {
+			debugPKCEFlow(r, "flow_state_not_found_error", map[string]interface{}{
+				"flow_state_id": flowStateID,
+				"error": err.Error(),
+			})
 			return apierrors.NewUnprocessableEntityError(apierrors.ErrorCodeFlowStateNotFound, "Flow state not found").WithInternalError(err)
 		} else if err != nil {
 			return apierrors.NewInternalServerError("Failed to find flow state").WithInternalError(err)
@@ -528,6 +558,11 @@ func (a *API) loadExternalState(ctx context.Context, r *http.Request) (context.C
 	}
 	if claims.FlowStateID != "" {
 		ctx = withFlowStateID(ctx, claims.FlowStateID)
+		// Debug flow state ID from JWT
+		debugPKCEFlow(r, "jwt_flow_state_id", map[string]interface{}{
+			"flow_state_id": claims.FlowStateID,
+			"provider": claims.Provider,
+		})
 	}
 	if claims.LinkingTargetID != "" {
 		linkingTargetUserID, err := uuid.FromString(claims.LinkingTargetID)
