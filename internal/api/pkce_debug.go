@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -58,9 +59,19 @@ func debugPKCEFlow(r *http.Request, stage string, data map[string]interface{}) {
 
 // getCookieDomain determines the appropriate cookie domain
 func getCookieDomain(r *http.Request, config *conf.GlobalConfiguration) string {
-	// First check if cookie domain is explicitly configured
-	if config.Cookie.Domain != "" {
-		return config.Cookie.Domain
+	// Parse the site URL to get the domain
+	if config.SiteURL != "" {
+		if u, err := url.Parse(config.SiteURL); err == nil {
+			host := u.Hostname()
+			// For subdomains, we want to set the parent domain
+			// e.g., db.compass-pharmacy.jp -> .compass-pharmacy.jp
+			parts := strings.Split(host, ".")
+			if len(parts) > 2 {
+				// Return parent domain with leading dot for subdomain sharing
+				return "." + strings.Join(parts[len(parts)-2:], ".")
+			}
+			return host
+		}
 	}
 
 	// Check X-Forwarded-Host header (when behind proxy)
@@ -87,14 +98,20 @@ func getCookieDomain(r *http.Request, config *conf.GlobalConfiguration) string {
 func setPKCECookie(w http.ResponseWriter, r *http.Request, config *conf.GlobalConfiguration, name, value string) {
 	domain := getCookieDomain(r, config)
 	
+	// Determine if we should use secure cookies based on the site URL
+	secure := false
+	if u, err := url.Parse(config.SiteURL); err == nil {
+		secure = u.Scheme == "https"
+	}
+	
 	cookie := &http.Cookie{
 		Name:     name,
 		Value:    value,
 		Path:     "/",
 		Domain:   domain,
 		HttpOnly: true,
-		Secure:   config.Cookie.Secure,
-		SameSite: http.SameSite(config.Cookie.SameSite),
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode, // Use Lax for OAuth flow
 		MaxAge:   300, // 5 minutes for PKCE flow
 	}
 
