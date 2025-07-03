@@ -1,6 +1,0 @@
-# ログレベルをDEBUGに設定してPKCEフローの詳細ログを出力
-GOTRUE_LOG_LEVEL=debug
-GOTRUE_LOG_FORMAT=json
-
-# サイトURLの設定（PKCEフローで重要）
-GOTRUE_SITE_URL=https://compass-pharmacy.jp
