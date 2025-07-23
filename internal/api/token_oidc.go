@@ -10,6 +10,7 @@ import (
 	"github.com/supabase/auth/internal/api/apierrors"
 	"github.com/supabase/auth/internal/api/provider"
 	"github.com/supabase/auth/internal/conf"
+	"github.com/supabase/auth/internal/metering"
 	"github.com/supabase/auth/internal/models"
 	"github.com/supabase/auth/internal/observability"
 	"github.com/supabase/auth/internal/storage"
@@ -77,6 +78,8 @@ func (p *IdTokenGrantParams) getProvider(ctx context.Context, config *conf.Globa
 
 	case p.Provider == "facebook" || p.Issuer == provider.IssuerFacebook:
 		cfg = &config.External.Facebook
+		// Facebook (Limited Login) nonce check is not supported
+		cfg.SkipNonceCheck = true
 		providerType = "facebook"
 		issuer = provider.IssuerFacebook
 		acceptableClientIDs = append(acceptableClientIDs, config.External.Facebook.ClientID...)
@@ -279,6 +282,10 @@ func (a *API) IdTokenGrant(ctx context.Context, w http.ResponseWriter, r *http.R
 			return apierrors.NewOAuthError("server_error", "Internal Server Error").WithInternalError(err)
 		}
 	}
+
+	metering.RecordLogin(metering.LoginTypeOIDC, token.User.ID, &metering.LoginData{
+		Provider: providerType,
+	})
 
 	return sendJSON(w, http.StatusOK, token)
 }
