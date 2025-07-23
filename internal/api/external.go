@@ -241,7 +241,7 @@ func (a *API) internalExternalProviderCallback(w http.ResponseWriter, r *http.Re
 			terr = tx.Update(flowState)
 
 			// Check if PKCE flow cookie is enabled
-			if config.Security.PKCEFlowCookieEnabled {
+			if a.config.Security.PKCEFlowCookieEnabled {
 				// Issue refresh token even in PKCE flow to set cookies
 				token, terr = a.issueRefreshToken(r, tx, user, models.OAuth, grantParams)
 			}
@@ -276,8 +276,8 @@ func (a *API) internalExternalProviderCallback(w http.ResponseWriter, r *http.Re
 		}
 		
 		// If PKCE flow cookie is enabled and we have a token, set cookies
-		if config.Security.PKCEFlowCookieEnabled && token != nil {
-			if err := setCookieTokens(config, token, w); err != nil {
+		if a.config.Security.PKCEFlowCookieEnabled && token != nil {
+			if err := setCookieTokens(a.config, token, w); err != nil {
 				// Log error but don't fail the request
 				observability.GetLogEntry(r).Entry.WithError(err).Warn("Failed to set cookie tokens in PKCE flow")
 			}
