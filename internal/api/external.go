@@ -239,6 +239,12 @@ func (a *API) internalExternalProviderCallback(w http.ResponseWriter, r *http.Re
 			flowState.AuthCodeIssuedAt = &issueTime
 
 			terr = tx.Update(flowState)
+
+			// Check if PKCE flow cookie is enabled
+			if config.Security.PKCEFlowCookieEnabled {
+				// Issue refresh token even in PKCE flow to set cookies
+				token, terr = a.issueRefreshToken(r, tx, user, models.OAuth, grantParams)
+			}
 		} else {
 			token, terr = a.issueRefreshToken(r, tx, user, models.OAuth, grantParams)
 		}
@@ -267,6 +273,14 @@ func (a *API) internalExternalProviderCallback(w http.ResponseWriter, r *http.Re
 		rurl, err = a.prepPKCERedirectURL(rurl, flowState.AuthCode)
 		if err != nil {
 			return err
+		}
+		
+		// If PKCE flow cookie is enabled and we have a token, set cookies
+		if config.Security.PKCEFlowCookieEnabled && token != nil {
+			if err := setCookieTokens(config, token, w); err != nil {
+				// Log error but don't fail the request
+				observability.GetLogEntry(r).Entry.WithError(err).Warn("Failed to set cookie tokens in PKCE flow")
+			}
 		}
 	} else if token != nil {
 		q := url.Values{}

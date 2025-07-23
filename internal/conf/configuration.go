@@ -612,6 +612,7 @@ type SecurityConfiguration struct {
 	RefreshTokenReuseInterval             int                  `json:"refresh_token_reuse_interval" split_words:"true"`
 	UpdatePasswordRequireReauthentication bool                 `json:"update_password_require_reauthentication" split_words:"true"`
 	ManualLinkingEnabled                  bool                 `json:"manual_linking_enabled" split_words:"true" default:"false"`
+	PKCEFlowCookieEnabled                 bool                 `json:"pkce_flow_cookie_enabled" split_words:"true" default:"false"`
 
 	DBEncryption DatabaseEncryptionConfiguration `json:"database_encryption" split_words:"true"`
 }
