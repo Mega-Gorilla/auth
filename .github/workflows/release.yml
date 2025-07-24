@@ -82,7 +82,7 @@ jobs:
       - uses: actions/setup-go@v5
         if: ${{ steps.release.outputs.release_created == 'true' || steps.release.outputs.prs_created == 'true' }}
         with:
-          go-version-file: go.mod
+          go-version: "1.23.7" # The Go version to download (if necessary) and use.
 
       - name: Build release artifacts
         if: ${{ steps.release.outputs.release_created == 'true' || steps.release.outputs.prs_created == 'true' }}
@@ -134,7 +134,12 @@ jobs:
             PR_NUMBER='${{ steps.release.outputs.pr && fromJSON(steps.release.outputs.pr).number }}'
             CHECKSUM_CONTENT=$(cat checksums.txt)
 
-            RELEASE_NOTES=$(printf "This is a release candidate. See release-please PR #%s for context.\n\n%s\n" "$PR_NUMBER" "$CHECKSUM_CONTENT")
+            RELEASE_NOTES=$(cat <<EOF
+This is a release candidate. See release-please PR #$PR_NUMBER for context.
+
+$CHECKSUM_CONTENT
+EOF
+            )
             
             GH_TOKEN='${{ github.token }}' gh release \
               create $RELEASE_NAME \
@@ -168,7 +173,12 @@ jobs:
           # Append checksums to existing release notes
           EXISTING_NOTES=$(GH_TOKEN='${{ github.token }}' gh release view $RELEASE_NAME --json body -q .body)
           CHECKSUM_CONTENT=$(cat checksums.txt)
-          FULL_NOTES=$(printf "%s\n\n%s\n" "$EXISTING_NOTES" "$CHECKSUM_CONTENT")
+          FULL_NOTES=$(cat <<EOF
+$EXISTING_NOTES
+
+$CHECKSUM_CONTENT
+EOF
+          )
           GH_TOKEN='${{ github.token }}' gh release edit $RELEASE_NAME -n "$FULL_NOTES"
 
           GH_TOKEN='${{ github.token }}' gh release upload $RELEASE_NAME ./auth-v$RELEASE_VERSION-x86.tar.gz ./auth-v$RELEASE_VERSION-arm64.tar.gz ./auth-v$RELEASE_VERSION.supafast-arm64.tar.gz

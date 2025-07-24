@@ -9,7 +9,6 @@ type ProviderSettings struct {
 	Bitbucket      bool `json:"bitbucket"`
 	Discord        bool `json:"discord"`
 	Facebook       bool `json:"facebook"`
-	Snapchat       bool `json:"snapchat"`
 	Figma          bool `json:"figma"`
 	Fly            bool `json:"fly"`
 	GitHub         bool `json:"github"`
@@ -51,7 +50,6 @@ func (a *API) Settings(w http.ResponseWriter, r *http.Request) error {
 			Bitbucket:      config.External.Bitbucket.Enabled,
 			Discord:        config.External.Discord.Enabled,
 			Facebook:       config.External.Facebook.Enabled,
-			Snapchat:       config.External.Snapchat.Enabled,
 			Figma:          config.External.Figma.Enabled,
 			Fly:            config.External.Fly.Enabled,
 			GitHub:         config.External.Github.Enabled,

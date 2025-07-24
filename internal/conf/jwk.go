@@ -168,7 +168,5 @@ func FindPublicKeyByKid(kid string, config *JWTConfiguration) (any, error) {
 	if kid == config.KeyID {
 		return []byte(config.Secret), nil
 	}
-
-	// don't return error, as a fallback key might be used
-	return nil, nil
+	return nil, fmt.Errorf("invalid kid: %s", kid)
 }

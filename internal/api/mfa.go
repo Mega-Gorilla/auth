@@ -169,7 +169,6 @@ func validateFactors(db *storage.Connection, user *models.User, newFactorName st
 
 func (a *API) enrollPhoneFactor(w http.ResponseWriter, r *http.Request, params *EnrollFactorParams) error {
 	ctx := r.Context()
-	config := a.config
 	user := getUser(ctx)
 	session := getSession(ctx)
 	db := a.db.WithContext(ctx)
@@ -209,7 +208,7 @@ func (a *API) enrollPhoneFactor(w http.ResponseWriter, r *http.Request, params *
 		if terr := tx.Create(factor); terr != nil {
 			return terr
 		}
-		if terr := models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.EnrollFactorAction, r.RemoteAddr, map[string]interface{}{
+		if terr := models.NewAuditLogEntry(r, tx, user, models.EnrollFactorAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id":   factor.ID,
 			"factor_type": factor.FactorType,
 		}); terr != nil {
@@ -231,7 +230,6 @@ func (a *API) enrollPhoneFactor(w http.ResponseWriter, r *http.Request, params *
 func (a *API) enrollWebAuthnFactor(w http.ResponseWriter, r *http.Request, params *EnrollFactorParams) error {
 	ctx := r.Context()
 	user := getUser(ctx)
-	config := a.config
 	session := getSession(ctx)
 	db := a.db.WithContext(ctx)
 
@@ -244,7 +242,7 @@ func (a *API) enrollWebAuthnFactor(w http.ResponseWriter, r *http.Request, param
 		if terr := tx.Create(factor); terr != nil {
 			return terr
 		}
-		if terr := models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.EnrollFactorAction, r.RemoteAddr, map[string]interface{}{
+		if terr := models.NewAuditLogEntry(r, tx, user, models.EnrollFactorAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id":   factor.ID,
 			"factor_type": factor.FactorType,
 		}); terr != nil {
@@ -313,7 +311,7 @@ func (a *API) enrollTOTPFactor(w http.ResponseWriter, r *http.Request, params *E
 			return terr
 		}
 
-		if terr := models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.EnrollFactorAction, r.RemoteAddr, map[string]interface{}{
+		if terr := models.NewAuditLogEntry(r, tx, user, models.EnrollFactorAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id": factor.ID,
 		}); terr != nil {
 			return terr
@@ -437,7 +435,7 @@ func (a *API) challengePhoneFactor(w http.ResponseWriter, r *http.Request) error
 			return terr
 		}
 
-		if terr := models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.CreateChallengeAction, r.RemoteAddr, map[string]interface{}{
+		if terr := models.NewAuditLogEntry(r, tx, user, models.CreateChallengeAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id":     factor.ID,
 			"factor_status": factor.Status,
 		}); terr != nil {
@@ -469,7 +467,7 @@ func (a *API) challengeTOTPFactor(w http.ResponseWriter, r *http.Request) error 
 		if terr := factor.WriteChallengeToDatabase(tx, challenge); terr != nil {
 			return terr
 		}
-		if terr := models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.CreateChallengeAction, r.RemoteAddr, map[string]interface{}{
+		if terr := models.NewAuditLogEntry(r, tx, user, models.CreateChallengeAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id":     factor.ID,
 			"factor_status": factor.Status,
 		}); terr != nil {
@@ -674,7 +672,7 @@ func (a *API) verifyTOTPFactor(w http.ResponseWriter, r *http.Request, params *V
 
 	err = db.Transaction(func(tx *storage.Connection) error {
 		var terr error
-		if terr = models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.VerifyFactorAction, r.RemoteAddr, map[string]interface{}{
+		if terr = models.NewAuditLogEntry(r, tx, user, models.VerifyFactorAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id":    factor.ID,
 			"challenge_id": challenge.ID,
 			"factor_type":  factor.FactorType,
@@ -722,10 +720,7 @@ func (a *API) verifyTOTPFactor(w http.ResponseWriter, r *http.Request, params *V
 	if err != nil {
 		return err
 	}
-
-	metering.RecordLogin(metering.LoginTypeMFA, user.ID, &metering.LoginData{
-		Provider: metering.ProviderMFATOTP,
-	})
+	metering.RecordLogin(string(models.MFACodeLoginAction), user.ID)
 
 	return sendJSON(w, http.StatusOK, token)
 
@@ -816,7 +811,7 @@ func (a *API) verifyPhoneFactor(w http.ResponseWriter, r *http.Request, params *
 
 	err = db.Transaction(func(tx *storage.Connection) error {
 		var terr error
-		if terr = models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.VerifyFactorAction, r.RemoteAddr, map[string]interface{}{
+		if terr = models.NewAuditLogEntry(r, tx, user, models.VerifyFactorAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id":    factor.ID,
 			"challenge_id": challenge.ID,
 			"factor_type":  factor.FactorType,
@@ -853,17 +848,13 @@ func (a *API) verifyPhoneFactor(w http.ResponseWriter, r *http.Request, params *
 	if err != nil {
 		return err
 	}
-
-	metering.RecordLogin(metering.LoginTypeMFA, user.ID, &metering.LoginData{
-		Provider: metering.ProviderMFAPhone,
-	})
+	metering.RecordLogin(string(models.MFACodeLoginAction), user.ID)
 
 	return sendJSON(w, http.StatusOK, token)
 }
 
 func (a *API) verifyWebAuthnFactor(w http.ResponseWriter, r *http.Request, params *VerifyFactorParams) error {
 	ctx := r.Context()
-	config := a.config
 	user := getUser(ctx)
 	factor := getFactor(ctx)
 	db := a.db.WithContext(ctx)
@@ -919,7 +910,7 @@ func (a *API) verifyWebAuthnFactor(w http.ResponseWriter, r *http.Request, param
 	var token *AccessTokenResponse
 	err = db.Transaction(func(tx *storage.Connection) error {
 		var terr error
-		if terr = models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.VerifyFactorAction, r.RemoteAddr, map[string]interface{}{
+		if terr = models.NewAuditLogEntry(r, tx, user, models.VerifyFactorAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id":    factor.ID,
 			"challenge_id": challenge.ID,
 			"factor_type":  factor.FactorType,
@@ -956,10 +947,7 @@ func (a *API) verifyWebAuthnFactor(w http.ResponseWriter, r *http.Request, param
 	if err != nil {
 		return err
 	}
-
-	metering.RecordLogin(metering.LoginTypeMFA, user.ID, &metering.LoginData{
-		Provider: metering.ProviderMFAWebAuthn,
-	})
+	metering.RecordLogin(string(models.MFACodeLoginAction), user.ID)
 
 	return sendJSON(w, http.StatusOK, token)
 }
@@ -1003,7 +991,6 @@ func (a *API) VerifyFactor(w http.ResponseWriter, r *http.Request) error {
 func (a *API) UnenrollFactor(w http.ResponseWriter, r *http.Request) error {
 	var err error
 	ctx := r.Context()
-	config := a.config
 	user := getUser(ctx)
 	factor := getFactor(ctx)
 	session := getSession(ctx)
@@ -1022,7 +1009,7 @@ func (a *API) UnenrollFactor(w http.ResponseWriter, r *http.Request) error {
 		if terr := tx.Destroy(factor); terr != nil {
 			return terr
 		}
-		if terr = models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.UnenrollFactorAction, r.RemoteAddr, map[string]interface{}{
+		if terr = models.NewAuditLogEntry(r, tx, user, models.UnenrollFactorAction, r.RemoteAddr, map[string]interface{}{
 			"factor_id":     factor.ID,
 			"factor_status": factor.Status,
 			"session_id":    session.ID,

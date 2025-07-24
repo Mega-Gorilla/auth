@@ -13,8 +13,7 @@ import (
 
 type RefreshTokenTestSuite struct {
 	suite.Suite
-	db     *storage.Connection
-	config *conf.GlobalConfiguration
+	db *storage.Connection
 }
 
 func (ts *RefreshTokenTestSuite) SetupTest() {
@@ -29,8 +28,7 @@ func TestRefreshToken(t *testing.T) {
 	require.NoError(t, err)
 
 	ts := &RefreshTokenTestSuite{
-		db:     conn,
-		config: globalConfig,
+		db: conn,
 	}
 	defer ts.db.Close()
 
@@ -51,7 +49,7 @@ func (ts *RefreshTokenTestSuite) TestGrantRefreshTokenSwap() {
 	r, err := GrantAuthenticatedUser(ts.db, u, GrantParams{})
 	require.NoError(ts.T(), err)
 
-	s, err := GrantRefreshTokenSwap(ts.config.AuditLog, &http.Request{}, ts.db, u, r)
+	s, err := GrantRefreshTokenSwap(&http.Request{}, ts.db, u, r)
 	require.NoError(ts.T(), err)
 
 	_, nr, _, err := FindUserWithRefreshToken(ts.db, r.Token, false)

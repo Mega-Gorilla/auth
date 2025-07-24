@@ -9,7 +9,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/supabase/auth/internal/conf"
 	"github.com/supabase/auth/internal/observability"
 	"github.com/supabase/auth/internal/storage"
 )
@@ -91,7 +90,7 @@ func (AuditLogEntry) TableName() string {
 	return tableName
 }
 
-func NewAuditLogEntry(config conf.AuditLogConfiguration, r *http.Request, tx *storage.Connection, actor *User, action AuditAction, ipAddress string, traits map[string]interface{}) error {
+func NewAuditLogEntry(r *http.Request, tx *storage.Connection, actor *User, action AuditAction, ipAddress string, traits map[string]interface{}) error {
 	id := uuid.Must(uuid.NewV4())
 
 	username := actor.GetEmail()
@@ -107,27 +106,22 @@ func NewAuditLogEntry(config conf.AuditLogConfiguration, r *http.Request, tx *st
 		"action":         action,
 		"log_type":       ActionLogTypeMap[action],
 	}
-
-	if name, ok := actor.UserMetaData["full_name"]; ok {
-		payload["actor_name"] = name
-	}
-
-	if traits != nil {
-		payload["traits"] = traits
+	l := AuditLogEntry{
+		ID:        id,
+		Payload:   JSONMap(payload),
+		IPAddress: ipAddress,
 	}
 
 	observability.LogEntrySetFields(r, logrus.Fields{
 		"auth_event": logrus.Fields(payload),
 	})
 
-	if config.DisablePostgres {
-		return nil
+	if name, ok := actor.UserMetaData["full_name"]; ok {
+		l.Payload["actor_name"] = name
 	}
 
-	l := AuditLogEntry{
-		ID:        id,
-		Payload:   JSONMap(payload),
-		IPAddress: ipAddress,
+	if traits != nil {
+		l.Payload["traits"] = traits
 	}
 
 	if err := tx.Create(&l); err != nil {

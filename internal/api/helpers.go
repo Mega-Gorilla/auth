@@ -40,9 +40,7 @@ func (a *API) requestAud(ctx context.Context, r *http.Request) string {
 	// Then check the token
 	claims := getClaims(ctx)
 
-	// ignore the JWT's aud claim if the role is admin
-	// this is because anon, service_role never had an aud claim to begin with
-	if claims != nil && !isStringInSlice(claims.Role, config.JWT.AdminRoles) {
+	if claims != nil {
 		aud, _ := claims.GetAudience()
 		if len(aud) != 0 && aud[0] != "" {
 			return aud[0]
