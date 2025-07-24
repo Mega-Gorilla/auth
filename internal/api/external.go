@@ -113,6 +113,15 @@ func (a *API) GetExternalProviderRedirectURL(w http.ResponseWriter, r *http.Requ
 	}
 
 	authUrlParams := make([]oauth2.AuthCodeOption, 0)
+	
+	// Add PKCE parameters if present
+	if codeChallenge != "" {
+		authUrlParams = append(authUrlParams, oauth2.SetAuthURLParam("code_challenge", codeChallenge))
+		if codeChallengeMethod != "" {
+			authUrlParams = append(authUrlParams, oauth2.SetAuthURLParam("code_challenge_method", codeChallengeMethod))
+		}
+	}
+	
 	query.Del("scopes")
 	query.Del("provider")
 	query.Del("code_challenge")
