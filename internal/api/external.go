@@ -118,6 +118,10 @@ func (a *API) GetExternalProviderRedirectURL(w http.ResponseWriter, r *http.Requ
 	if codeChallenge != "" {
 		authUrlParams = append(authUrlParams, oauth2.SetAuthURLParam("code_challenge", codeChallenge))
 		if codeChallengeMethod != "" {
+			// Ensure code_challenge_method is uppercase (S256 instead of s256)
+			if codeChallengeMethod == "s256" {
+				codeChallengeMethod = "S256"
+			}
 			authUrlParams = append(authUrlParams, oauth2.SetAuthURLParam("code_challenge_method", codeChallengeMethod))
 		}
 	}
