@@ -132,7 +132,6 @@ paths:
                     - azure
                     - facebook
                     - keycloak
-                    - authentik
                 client_id:
                   type: string
                 issuer:

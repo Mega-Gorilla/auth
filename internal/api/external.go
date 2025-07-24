@@ -612,8 +612,6 @@ func (a *API) Provider(ctx context.Context, name string, scopes string) (provide
 		return provider.NewKakaoProvider(config.External.Kakao, scopes)
 	case "keycloak":
 		return provider.NewKeycloakProvider(config.External.Keycloak, scopes)
-	case "authentik":
-		return provider.NewAuthentikProvider(config.External.Authentik, scopes)
 	case "linkedin":
 		return provider.NewLinkedinProvider(config.External.Linkedin, scopes)
 	case "linkedin_oidc":
