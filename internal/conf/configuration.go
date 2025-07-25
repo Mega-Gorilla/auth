@@ -317,6 +317,7 @@ type EmailContentConfiguration struct {
 type ProviderConfiguration struct {
 	AnonymousUsers          AnonymousProviderConfiguration `json:"anonymous_users" split_words:"true"`
 	Apple                   OAuthProviderConfiguration     `json:"apple"`
+	Authentik               OAuthProviderConfiguration     `json:"authentik"`
 	Azure                   OAuthProviderConfiguration     `json:"azure"`
 	Bitbucket               OAuthProviderConfiguration     `json:"bitbucket"`
 	Discord                 OAuthProviderConfiguration     `json:"discord"`

@@ -5,6 +5,7 @@ import "net/http"
 type ProviderSettings struct {
 	AnonymousUsers bool `json:"anonymous_users"`
 	Apple          bool `json:"apple"`
+	Authentik      bool `json:"authentik"`
 	Azure          bool `json:"azure"`
 	Bitbucket      bool `json:"bitbucket"`
 	Discord        bool `json:"discord"`
@@ -46,6 +47,7 @@ func (a *API) Settings(w http.ResponseWriter, r *http.Request) error {
 		ExternalProviders: ProviderSettings{
 			AnonymousUsers: config.External.AnonymousUsers.Enabled,
 			Apple:          config.External.Apple.Enabled,
+			Authentik:      config.External.Authentik.Enabled,
 			Azure:          config.External.Azure.Enabled,
 			Bitbucket:      config.External.Bitbucket.Enabled,
 			Discord:        config.External.Discord.Enabled,

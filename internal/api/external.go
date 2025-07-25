@@ -570,6 +570,8 @@ func (a *API) Provider(ctx context.Context, name string, scopes string) (provide
 	switch name {
 	case "apple":
 		return provider.NewAppleProvider(ctx, config.External.Apple)
+	case "authentik":
+		return provider.NewAuthentikProvider(config.External.Authentik, scopes)
 	case "azure":
 		return provider.NewAzureProvider(config.External.Azure, scopes)
 	case "bitbucket":
