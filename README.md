@@ -434,6 +434,17 @@ We support `apple`, `authentik`, `azure`, `bitbucket`, `discord`, `facebook`, `f
 
 Use the names as the keys underneath `external` to configure each separately.
 
+#### PKCE Support Limitation
+
+**Important**: Supabase Auth (GoTrue) does **NOT** support PKCE (Proof Key for Code Exchange) for OAuth2 providers. This is a fundamental limitation in the current implementation:
+
+- PKCE parameters (`code_challenge`, `code_challenge_method`) are only used for internal authentication flows (email/password, magic links)
+- When using OAuth2 providers (GitHub, Google, Authentik, etc.), PKCE parameters are **not forwarded** to the external provider
+- The `exchangeCodeForSession` method for OAuth flows doesn't accept `code_verifier` parameter
+- **Solution**: Use **Confidential** OAuth2 client type with `client_secret` instead of Public client type with PKCE
+
+This limitation exists because Supabase Auth was designed primarily for server-side OAuth flows where client secrets can be securely stored, rather than public clients (SPAs, mobile apps) that require PKCE for security.
+
 ```properties
 GOTRUE_EXTERNAL_GITHUB_ENABLED=true
 GOTRUE_EXTERNAL_GITHUB_CLIENT_ID=myappclientid
